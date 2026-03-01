@@ -1,12 +1,6 @@
 import argparse
 import datetime
-import sys  # <--- MOVE THIS HERE
-import pytz  # <--- MOVE THIS HERE
-from daylight_py.ipinfo import fetch_ip_info, IPInfoError  # <--- MOVE THIS HERE
-from daylight_py.calculations import get_sun_times  # <--- MOVE THIS HERE
-from daylight_py.json_view import create_json_output  # <--- MOVE THIS HERE
-from daylight_py.condensed_view import create_condensed_output  # <--- MOVE THIS HERE
-from daylight_py.full_view import create_full_output  # <--- MOVE THIS HERE
+import sys
 
 
 def main():
@@ -28,6 +22,14 @@ def main():
     parser.add_argument("--json", action="store_true", help="Short JSON output")
 
     args = parser.parse_args()
+
+    # Defer heavy imports until after argument parsing
+    import pytz
+    from .ipinfo import fetch_ip_info, IPInfoError
+    from .calculations import get_sun_times
+    from .json_view import create_json_output
+    from .condensed_view import create_condensed_output
+    from .full_view import create_full_output
 
     # Validation similar to the Go version's Config() method
     if (args.latitude is None) != (args.longitude is None):
@@ -67,6 +69,10 @@ def main():
         offline_mode = True  # All required info provided
     elif latitude is not None and longitude is not None and timezone_pytz is None:
         # If lat/long are given but no TZ, this is an issue.
+        # The Go app would fetch from IPInfo and then use provided lat/long if TZ was missing.
+        # For simplicity, let's require TZ if lat/long are manually set for offline mode.
+        # Or, alternatively, fetch IPInfo to get TZ and then override lat/long.
+        # The original Go app seems to prioritize provided args, then fills with IPInfo.
         # Let's try to fetch IP info if timezone is missing, even if lat/long are present.
         pass  # Will fall through to IPInfo fetch if tz is still None
 
@@ -80,7 +86,7 @@ def main():
             if longitude is None:
                 longitude = ip_data["longitude"]
             if timezone_pytz is None:  # Prioritize CLI arg for TZ
-                timezone_pytz = ip_data["timezone"] # Assuming it's already a pytz object
+                timezone_pytz = ip_data["timezone"] # Already a pytz timezone object
             print(
                 f"Using: Lat={latitude:.2f}, Lon={longitude:.2f}, TZ={timezone_pytz.zone}",
                 file=sys.stderr,
@@ -116,6 +122,7 @@ def main():
 
     # Apply the determined timezone to the date (making it aware for calculations if needed by astral, though date itself is naive)
     # The get_sun_times function expects a naive date object and a pytz timezone object.
+
     # Get sun times for today (or target_date) and yesterday
     try:
         sun_times_today = get_sun_times(latitude, longitude, target_date, timezone_pytz)
@@ -187,6 +194,8 @@ def main():
 
 if __name__ == "__main__":
     # The sys.path manipulation below is usually for development/testing
+    # when running app.py directly and the package isn't properly installed.
+    # For `uv run` which uses entry points, it's often not strictly necessary,
     # but keeping it here doesn't hurt.
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).resolve().parent))
