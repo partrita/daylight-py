@@ -62,10 +62,12 @@ def get_sun_times(latitude, longitude, date_obj, timezone_pytz):
     # Determine polar day/night status based on the presence of sunrise and sunset
     if sunrise_utc is None and sunset_utc is None:
         # If both sunrise and sunset are absent, it's a polar condition.
-        # We then check if 'dawn' or 'dusk' (twilight) events are present, or if solar noon exists.
-        # If any form of light event is present, it suggests polar day.
-        # Otherwise, it's polar night.
-        if s.get("dawn") is not None or s.get("dusk") is not None or noon_utc is not None:
+        # We can distinguish between polar day and polar night by checking the sun's elevation.
+        # If astral didn't return a noon time, approximate it to local 12:00 PM.
+        from astral.sun import elevation
+        test_noon = noon_utc if noon_utc else timezone_pytz.localize(datetime.datetime.combine(date_obj, datetime.time(12, 0, 0)))
+        sun_elev = elevation(city.observer, test_noon)
+        if sun_elev > 0:
             polar_day = True
         else:
             polar_night = True
