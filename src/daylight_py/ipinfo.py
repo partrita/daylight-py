@@ -40,16 +40,16 @@ def fetch_ip_info():
     if not tz_str:
         raise IPInfoError("IPInfo response missing 'timezone' field.")
 
-    # Parse location string "lat,long"
-    lat_long_match = re.match(r"^(-?\d+\.?\d*),(-?\d+\.?\d*)$", loc_str)
-    if not lat_long_match:
+    # Parse location string "lat,long" safely (avoid ReDoS)
+    parts = loc_str.split(',')
+    if len(parts) != 2:
         raise IPInfoError(f"IPInfo returned invalid location format: {loc_str}")
 
     try:
-        latitude = float(lat_long_match.group(1))
-        longitude = float(lat_long_match.group(2))
+        latitude = float(parts[0].strip())
+        longitude = float(parts[1].strip())
     except ValueError:
-        raise IPInfoError(f"Could not parse latitude/longitude from location: {loc_str}")
+        raise IPInfoError(f"IPInfo returned invalid location format: {loc_str}")
 
     if not (-90 <= latitude <= 90):
         raise IPInfoError(f"IPInfo returned invalid latitude: {latitude}")
