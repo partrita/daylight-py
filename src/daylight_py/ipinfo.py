@@ -1,6 +1,7 @@
+import re
 import requests
 import pytz
-import re
+import ipaddress
 
 IPINFO_URL = "https://ipinfo.io/json?inc=ip,loc,timezone"
 
@@ -35,6 +36,12 @@ def fetch_ip_info():
 
     if not ip:
         raise IPInfoError("IPInfo response missing 'ip' field.")
+
+    try:
+        ipaddress.ip_address(ip)
+    except ValueError:
+        raise IPInfoError(f"IPInfo returned invalid IP address: {ip}")
+
     if not loc_str:
         raise IPInfoError("IPInfo response missing 'loc' (location) field.")
     if not tz_str:

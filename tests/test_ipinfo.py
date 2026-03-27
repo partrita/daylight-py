@@ -106,6 +106,21 @@ class TestIPInfo(unittest.TestCase):
         with self.assertRaisesRegex(IPInfoError, "Error decoding JSON response.*JSON Decode Error"):
             fetch_ip_info()
 
+
+    @patch('daylight_py.ipinfo.requests.get')
+    def test_fetch_ip_info_invalid_ip(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "ip": "[31mMALICIOUS IP[0m",
+            "loc": "51.50,-0.12",
+            "timezone": "Europe/London"
+        }
+        mock_response.raise_for_status.return_value = None
+        mock_get.return_value = mock_response
+
+        with self.assertRaisesRegex(IPInfoError, "IPInfo returned invalid IP address"):
+            fetch_ip_info()
+
 # This is needed to import requests for the side_effect
 import requests
 
