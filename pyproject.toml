@@ -23,7 +23,7 @@ classifiers = [
     "Topic :: Utilities",
 ]
 dependencies = [
-    "requests==2.32.4",
+    "requests==2.33.0",
     "pytz==2025.2",
     "astral==3.2",
 ]
